@@ -51,6 +51,7 @@ where
     pub fn parse(data: R) -> read::Result<Self>
     where
         Elf: Pod,
+        Elf::SectionHeader: Pod,
     {
         let header = Elf::parse(data)?;
         let endian = header.endian()?;
@@ -554,7 +555,10 @@ pub trait FileHeader: Debug {
         &self,
         endian: Self::Endian,
         data: R,
-    ) -> read::Result<Option<&'data Self::SectionHeader>> {
+    ) -> read::Result<Option<&'data Self::SectionHeader>>
+    where
+        Self::SectionHeader: Pod,
+    {
         let shoff: u64 = self.e_shoff(endian).into();
         if shoff == 0 {
             // No section headers is ok.
@@ -573,11 +577,10 @@ pub trait FileHeader: Debug {
     /// Return the `e_phnum` field of the header. Handles extended values.
     ///
     /// Returns `Err` for invalid values.
-    fn phnum<'data, R: ReadRef<'data>>(
-        &self,
-        endian: Self::Endian,
-        data: R,
-    ) -> read::Result<usize> {
+    fn phnum<'data, R: ReadRef<'data>>(&self, endian: Self::Endian, data: R) -> read::Result<usize>
+    where
+        Self::SectionHeader: Pod,
+    {
         let e_phnum = self.e_phnum(endian);
         if e_phnum < elf::PN_XNUM {
             Ok(e_phnum as usize)
@@ -592,11 +595,10 @@ pub trait FileHeader: Debug {
     /// Return the `e_shnum` field of the header. Handles extended values.
     ///
     /// Returns `Err` for invalid values.
-    fn shnum<'data, R: ReadRef<'data>>(
-        &self,
-        endian: Self::Endian,
-        data: R,
-    ) -> read::Result<usize> {
+    fn shnum<'data, R: ReadRef<'data>>(&self, endian: Self::Endian, data: R) -> read::Result<usize>
+    where
+        Self::SectionHeader: Pod,
+    {
         let e_shnum = self.e_shnum(endian);
         if e_shnum > 0 {
             Ok(e_shnum as usize)
@@ -616,11 +618,10 @@ pub trait FileHeader: Debug {
     /// Return the `e_shstrndx` field of the header. Handles extended values.
     ///
     /// Returns `Err` for invalid values (including if the index is 0).
-    fn shstrndx<'data, R: ReadRef<'data>>(
-        &self,
-        endian: Self::Endian,
-        data: R,
-    ) -> read::Result<u32> {
+    fn shstrndx<'data, R: ReadRef<'data>>(&self, endian: Self::Endian, data: R) -> read::Result<u32>
+    where
+        Self::SectionHeader: Pod,
+    {
         let e_shstrndx = self.e_shstrndx(endian);
         let index = if e_shstrndx != elf::SHN_XINDEX {
             e_shstrndx.into()
@@ -644,7 +645,10 @@ pub trait FileHeader: Debug {
         &self,
         endian: Self::Endian,
         data: R,
-    ) -> read::Result<&'data [Self::ProgramHeader]> {
+    ) -> read::Result<&'data [Self::ProgramHeader]>
+    where
+        Self::SectionHeader: Pod,
+    {
         let phoff: u64 = self.e_phoff(endian).into();
         if phoff == 0 {
             // No program headers is ok.
@@ -672,7 +676,10 @@ pub trait FileHeader: Debug {
         &self,
         endian: Self::Endian,
         data: R,
-    ) -> read::Result<&'data [Self::SectionHeader]> {
+    ) -> read::Result<&'data [Self::SectionHeader]>
+    where
+        Self::SectionHeader: Pod,
+    {
         let shoff: u64 = self.e_shoff(endian).into();
         if shoff == 0 {
             // No section headers is ok.
@@ -698,7 +705,10 @@ pub trait FileHeader: Debug {
         endian: Self::Endian,
         data: R,
         sections: &[Self::SectionHeader],
-    ) -> read::Result<StringTable<'data, R>> {
+    ) -> read::Result<StringTable<'data, R>>
+    where
+        Self::SectionHeader: Pod,
+    {
         if sections.is_empty() {
             return Ok(StringTable::default());
         }
@@ -720,7 +730,10 @@ pub trait FileHeader: Debug {
         &self,
         endian: Self::Endian,
         data: R,
-    ) -> read::Result<SectionTable<'data, Self, R>> {
+    ) -> read::Result<SectionTable<'data, Self, R>>
+    where
+        Self::SectionHeader: Pod,
+    {
         let sections = self.section_headers(endian, data)?;
         let strings = self.section_strings(endian, data, sections)?;
         Ok(SectionTable::new(sections, strings))
