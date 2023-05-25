@@ -1,5 +1,6 @@
 use super::*;
 use object::macho::*;
+use object::pod::Pod;
 use object::read::macho::*;
 use object::BigEndian;
 
@@ -157,7 +158,9 @@ fn print_macho<Mach: MachHeader<Endian = Endianness>>(
     header: &Mach,
     data: &[u8],
     offset: u64,
-) {
+) where
+    Mach::Section: Pod,
+{
     if let Some(endian) = header.endian().print_err(p) {
         let mut state = MachState {
             cputype: header.cputype(endian),
@@ -545,7 +548,9 @@ fn print_segment<S: Segment>(
     segment: &S,
     section_data: &[u8],
     state: &mut MachState,
-) {
+) where
+    S::Section: Pod,
+{
     p.group("SegmentCommand", |p| {
         p.field_enum("Cmd", segment.cmd(endian), FLAGS_LC);
         p.field_hex("CmdSize", segment.cmdsize(endian));
